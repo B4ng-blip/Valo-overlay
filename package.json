@@ -1,0 +1,11 @@
+{
+  "name": "valorant-broadcast-overlay",
+  "version": "1.0.0",
+  "description": "VCT-style Valorant broadcast overlay for OBS, driven by an operator control panel. Zero dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=16" },
+  "license": "MIT"
+}

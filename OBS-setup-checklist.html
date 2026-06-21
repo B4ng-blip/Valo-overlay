@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OBS 설정 체크리스트</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap');
+:root{--red:#ff4655;--teal:#18e0c4;--bg:#0a0e14;--panel:#0f1923;--line:#1f2c38;--ice:#ece8e1;--dim:#8696a5}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ice);font-family:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;padding:28px 18px;line-height:1.45}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-family:'Teko',sans-serif;font-weight:600;font-size:46px;letter-spacing:1px;line-height:.95}
+h1 .tag{color:var(--red)}
+.sub{color:var(--dim);font-size:15px;letter-spacing:.5px;margin:2px 0 22px}
+.bar{height:6px;background:#16202b;border-radius:4px;overflow:hidden;margin-bottom:6px}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--teal));transition:width .35s}
+.count{font-family:'Teko';font-size:18px;color:var(--dim);letter-spacing:1px;margin-bottom:22px}
+.count b{color:var(--ice)}
+section{margin-bottom:26px}
+section h2{font-family:'Teko';font-weight:600;font-size:24px;letter-spacing:1px;color:var(--teal);text-transform:uppercase;
+  border-left:4px solid var(--red);padding-left:10px;margin-bottom:10px}
+.item{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:7px;
+  padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .2s,opacity .2s}
+.item:hover{border-color:#33485a}
+.item.done{opacity:.55;border-color:var(--teal)}
+.box{flex:0 0 22px;height:22px;border:2px solid #3a4c5d;border-radius:5px;display:grid;place-items:center;margin-top:1px;transition:.2s}
+.item.done .box{background:var(--teal);border-color:var(--teal)}
+.item.done .box::after{content:'✓';color:#0a0e14;font-weight:800;font-size:15px;font-family:system-ui}
+.txt{font-size:16px;letter-spacing:.3px}
+.txt small{display:block;color:var(--dim);font-size:13px;margin-top:2px;letter-spacing:.2px}
+.txt code{background:#16202b;color:var(--teal);padding:1px 7px;border-radius:4px;font-family:'Barlow Condensed';font-size:14px}
+.item.done .txt{text-decoration:line-through;text-decoration-color:#3a4c5d}
+.reset{background:none;border:1px solid var(--line);color:var(--dim);border-radius:6px;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:14px;letter-spacing:1px}
+.reset:hover{border-color:var(--red);color:var(--red)}
+.note{background:rgba(255,70,85,.08);border:1px solid rgba(255,70,85,.3);border-radius:7px;padding:12px 14px;font-size:14px;color:#ffb3ba;margin-bottom:24px;letter-spacing:.2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>OBS 송출 <span class="tag">체크리스트</span></h1>
+  <p class="sub">항목을 탭하면 완료 표시됩니다. 위에서부터 순서대로 진행하세요.</p>
+
+  <div class="note">⚠️ 실시간 인게임 데이터(무기·궁극기 등)는 공식 API가 개인에게 열려 있지 않아 <b>운영자가 수동 입력</b>합니다. 혼자라면 스코어·공수·맵만 갱신하고, 가능하면 옵저버 1명에게 컨트롤 패널을 맡기세요.</div>
+
+  <div class="bar"><i id="bar"></i></div>
+  <div class="count"><b id="done">0</b> / <span id="total">0</span> 완료</div>
+
+  <div id="list"></div>
+  <button class="reset" onclick="reset()">전체 초기화</button>
+</div>
+
+<script>
+const DATA=[
+  ["사전 준비",[
+    ["Node.js LTS 설치","nodejs.org 에서 설치 후 터미널에서 <code>node -v</code> 로 확인"],
+    ["프로젝트 폴더에서 서버 실행","터미널에 <code>node server.js</code> 입력 → 주소 3개가 출력됨"],
+    ["오버레이 작동 확인","브라우저에서 <code>http://localhost:8080/overlay</code> 가 열리는지 확인"]
+  ]],
+  ["OBS 브라우저 소스 추가",[
+    ["소스 → 추가 → 브라우저","새 소스 이름을 'VALO 오버레이' 등으로 지정"],
+    ["URL 입력","<code>http://localhost:8080/overlay</code>"],
+    ["해상도 1920 × 1080 설정","너비 1920, 높이 1080 입력"],
+    ["레이어 순서 정렬","오버레이를 '게임 캡처' 소스보다 위로 이동(배경 자동 투명)"],
+    ["FPS 옵션 확인","'활성화되지 않을 때 소스 종료' 체크 해제 권장(타이머 끊김 방지)"]
+  ]],
+  ["컨트롤 패널 준비",[
+    ["패널 열기","별도 창/모니터/태블릿에서 <code>http://localhost:8080/control</code>"],
+    ["연결 상태 확인","우상단이 '● 연결됨'(청록) 인지 확인"],
+    ["팀 정보 입력","팀명·약칭·컬러·로고 URL·시작 스코어 0-0 세팅"],
+    ["선수 명단 입력","양 팀 5명씩 이름·에이전트 입력(무기/궁은 경기 중 갱신)"],
+    ["폰으로 조작 시","같은 와이파이에서 <code>http://192.168.x.x:8080/control</code> 접속"]
+  ]],
+  ["캠(선수/캐스터 영상)",[
+    ["캠 슬롯 위치 결정","패널에서 캠 ON, 좌하단/우하단 선택"],
+    ["OBS에 실제 캠 소스 배치","웹캠/비디오 캡처 소스를 빈 캠 프레임 위에 크기 맞춰 올리기"],
+    ["라벨 입력","선수 닉네임이나 'CASTER CAM' 등 라벨 설정"]
+  ]],
+  ["방송 직전 최종 점검",[
+    ["스코어 0-0, 1라운드 BUY 상태","경기 시작 직전 초기값 확인"],
+    ["공수 방향 맞추기","좌측 팀이 공격이면 ATK 표시가 좌측에 오도록 '좌우 교체'로 조정"],
+    ["타이머 테스트","▶ 눌러 카운트다운이 오버레이에 반영되는지 확인"],
+    ["저작권 확인","라이엇 공식 로고/에이전트 이미지 대신 직접 만든 팀 로고 사용"]
+  ]]
+];
+
+const list=document.getElementById("list");let total=0;
+DATA.forEach((sec,si)=>{
+  const s=document.createElement("section");
+  s.innerHTML=`<h2>${sec[0]}</h2>`;
+  sec[1].forEach((it,ii)=>{
+    total++;
+    const id="c"+si+"_"+ii;
+    const d=document.createElement("div");d.className="item";d.dataset.id=id;
+    d.innerHTML=`<div class="box"></div><div class="txt">${it[0]}<small>${it[1]}</small></div>`;
+    d.onclick=()=>{d.classList.toggle("done");save();update();};
+    s.appendChild(d);
+  });
+  list.appendChild(s);
+});
+document.getElementById("total").textContent=total;
+
+const store={}; // in-memory (artifact-safe). For the file version, swap to localStorage.
+function save(){document.querySelectorAll(".item").forEach(i=>store[i.dataset.id]=i.classList.contains("done"));}
+function update(){const done=document.querySelectorAll(".item.done").length;
+  document.getElementById("done").textContent=done;
+  document.getElementById("bar").style.width=(done/total*100)+"%";}
+function reset(){document.querySelectorAll(".item").forEach(i=>i.classList.remove("done"));save();update();}
+update();
+</script>
+</body>
+</html>
